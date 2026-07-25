@@ -48,7 +48,9 @@ Example output of `run_live.py`:
 | `scripts/{calibrate,run_live,evaluate}.py` | — | ✅ wired, runnable |
 | `tests/` | S3.7 | ✅ 6 passing (features + state machine) |
 | `wisp/source/csi_bench_source.py` | — | ✅ adapter to replay CSI-Bench `.h5` clips (needs `h5py`) |
-| `wisp/source/serial_source.py` | S1.6 | ⛔ TODO — **write LAST**, after hardware Milestone 1 |
+| `wisp/source/serial_source.py` | S1.6 | ✅ live ESP32 reader (pyserial, lazy import) — needs a board to *run*, but written |
+| `scripts/plot_run.py` | — | ✅ saves `run.png` — motion + sharpness + alerts |
+| `tests/` | — | ✅ 20 passing (features, state machine, parser, logger↔replay, model, profile, harness, csi-bench) |
 
 ## What's genuinely left
 
