@@ -151,6 +151,17 @@
     animation: popIn .25s ease-out;
   }
   @keyframes popIn { from { opacity: 0; transform: scale(.92) translateY(12px); } to { opacity: 1; transform: none; } }
+  .modal-popup .hero-top { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+  .modal-popup .headline { font-size: clamp(26px, 5vw, 44px); font-weight: 750; letter-spacing: -.5px; line-height: 1.05; margin: 0; }
+  .modal-popup .sub { color: var(--muted); margin-top: 10px; font-size: 15px; }
+  .modal-popup .roomline { margin-top: 4px; color: var(--dim); font-size: 13.5px; }
+  .modal-popup .facts { display: flex; gap: 26px; flex-wrap: wrap; margin-top: 20px; }
+  .modal-popup .fact .n { font-size: 26px; font-weight: 700; }
+  .modal-popup .fact .l { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; }
+  .modal-popup .fact .n.red { color: #ff8a7a; }
+  .modal-popup .alert-grid { display: grid; grid-template-columns: 1.2fr .8fr; gap: 26px; align-items: center; }
+  @media (max-width: 720px){ .modal-popup .alert-grid { grid-template-columns: 1fr; } }
+  .modal-footer { margin-top: 28px; display: flex; justify-content: center; }
 </style>
 </head>
 <body data-alert="none">
