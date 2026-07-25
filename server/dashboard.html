@@ -188,44 +188,7 @@
       </div>
     </div>
 
-    <!-- ALERT view -->
-    <div id="viewAlert" class="hide">
-      <div class="hero-top"><span class="statuslight"></span><span class="k">Fall alert</span></div>
-      <div class="alert-grid">
-        <div>
-          <h1 class="headline" id="alHead">FALL DETECTED</h1>
-          <div class="sub" id="alSub">A collapse was detected and confirmed.</div>
-          <div class="roomline" id="alRoom">—</div>
-          <div class="facts">
-            <div class="fact"><div class="n red" id="alStill">—</div><div class="l">down for</div></div>
-            <div class="fact"><div class="n" id="alConf">—</div><div class="l">confidence</div></div>
-            <div class="fact"><div class="n" id="alKind">—</div><div class="l">type</div></div>
-          </div>
-        </div>
-
-        <!-- escalation: countdown OR notified -->
-        <div class="esc" id="escActive">
-          <div class="ring">
-            <svg width="150" height="150" viewBox="0 0 150 150">
-              <circle class="track" cx="75" cy="75" r="66" fill="none" stroke-width="12"/>
-              <circle class="prog" id="ringProg" cx="75" cy="75" r="66" fill="none" stroke-width="12"/>
-            </svg>
-            <div class="center"><div class="big" id="cd">—</div><div class="small">seconds</div></div>
-          </div>
-          <div class="cap" id="escCap">Contacting <b id="escWho">emergency contact</b>…</div>
-          <button class="btn" id="cancelBtn">I'm OK — cancel</button>
-        </div>
-
-        <div class="esc hide" id="escDone">
-          <div class="notified">
-            <div class="tick">✅</div>
-            <div class="who" id="doneWho">Emergency contact notified</div>
-            <div class="cap" id="doneCap">Help is on the way.</div>
-          </div>
-          <button class="btn ghost" id="resetBtn">Reset monitor</button>
-        </div>
-      </div>
-    </div>
+    <!-- ALERT view is now a modal overlay (see below) -->
   </section>
 
   <!-- ================= PANELS ================= -->
@@ -255,6 +218,49 @@
   <div id="warnBanner" class="banner warn"></div>
   <div id="errBanner" class="banner err"></div>
   <div class="footnote" id="foot">—</div>
+</div>
+
+<!-- ================= ALERT MODAL OVERLAY ================= -->
+<div class="modal-overlay" id="alertModal">
+  <div class="modal-popup">
+    <div class="hero-top"><span class="statuslight"></span><span class="k">Fall alert</span></div>
+    <div class="alert-grid">
+      <div>
+        <h1 class="headline" id="alHead">FALL DETECTED</h1>
+        <div class="sub" id="alSub">A collapse was detected and confirmed.</div>
+        <div class="roomline" id="alRoom">—</div>
+        <div class="facts">
+          <div class="fact"><div class="n red" id="alStill">—</div><div class="l">down for</div></div>
+          <div class="fact"><div class="n" id="alConf">—</div><div class="l">confidence</div></div>
+          <div class="fact"><div class="n" id="alKind">—</div><div class="l">type</div></div>
+        </div>
+      </div>
+
+      <!-- escalation: countdown OR notified -->
+      <div class="esc" id="escActive">
+        <div class="ring">
+          <svg width="150" height="150" viewBox="0 0 150 150">
+            <circle class="track" cx="75" cy="75" r="66" fill="none" stroke-width="12"/>
+            <circle class="prog" id="ringProg" cx="75" cy="75" r="66" fill="none" stroke-width="12"/>
+          </svg>
+          <div class="center"><div class="big" id="cd">—</div><div class="small">seconds</div></div>
+        </div>
+        <div class="cap" id="escCap">Contacting <b id="escWho">emergency contact</b>…</div>
+      </div>
+
+      <div class="esc hide" id="escDone">
+        <div class="notified">
+          <div class="tick">✅</div>
+          <div class="who" id="doneWho">Emergency contact notified</div>
+          <div class="cap" id="doneCap">Help is on the way.</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="cancelBtn">I'm OK — cancel</button>
+      <button class="btn ghost hide" id="resetBtn">Reset monitor</button>
+    </div>
+  </div>
 </div>
 
 <script>
