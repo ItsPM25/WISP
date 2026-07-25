@@ -64,10 +64,21 @@ class RoomProfile:
         still_pct: float = 35.0,
         occupied_pct: float = 65.0,
         sharp_pct: float = 99.5,
+        still_abs: Optional[float] = None,
+        occupied_abs: Optional[float] = None,
+        sharp_abs: Optional[float] = None,
         model_kw: Optional[dict] = None,
         **timings,
     ) -> "RoomProfile":
-        """Fit a profile from a normal-room recording (a CSISource)."""
+        """Fit a profile from a normal-room recording (a CSISource).
+
+        Thresholds default to the room's own motion/sharpness percentiles. But a percentile
+        of a *moving* calibration can land the stillness floor BELOW the room's true resting
+        noise floor — then "quiet" reads as "still moving" and no collapse can ever confirm.
+        When the real floor is known from live measurement, pass ``still_abs`` /
+        ``occupied_abs`` / ``sharp_abs`` to pin a threshold to an absolute value and override
+        the percentile. The mask and anomaly model are always learned from the data.
+        """
         # Materialize ONCE — a live/synthetic generator is one-shot, and we need two
         # passes (mask, then features) over identical data.
         records = list(source.stream())
@@ -94,9 +105,9 @@ class RoomProfile:
             sample_rate_hz=float(sample_rate_hz),
             win_samples=win_samples,
             hop_samples=hop_samples,
-            still_threshold=float(np.percentile(motions, still_pct)),
-            occupied_threshold=float(np.percentile(motions, occupied_pct)),
-            sharp_threshold=float(np.percentile(sharps, sharp_pct)),
+            still_threshold=float(still_abs if still_abs is not None else np.percentile(motions, still_pct)),
+            occupied_threshold=float(occupied_abs if occupied_abs is not None else np.percentile(motions, occupied_pct)),
+            sharp_threshold=float(sharp_abs if sharp_abs is not None else np.percentile(sharps, sharp_pct)),
             **timings,
         )
 

@@ -72,6 +72,8 @@ def _parse_args(argv=None) -> argparse.Namespace:
     # source chain
     p.add_argument("--serial", dest="serial_port", default=None,
                    help="serial port of the RX ESP32 (default: autodetect /dev/ttyUSB*)")
+    p.add_argument("--companion", default=None,
+                   help="serial port of the TX ESP32 to hold open (keeps the 2-board link up)")
     p.add_argument("--no-serial", dest="probe_serial", action="store_false",
                    help="skip the live ESP32 probe and go straight to fallback")
     p.add_argument("--baud", type=int, default=921600)
@@ -84,6 +86,17 @@ def _parse_args(argv=None) -> argparse.Namespace:
     p.add_argument("--calibrate-s", type=float, default=20.0,
                    help="seconds of live 'normal' to fit a room profile (live only)")
     p.add_argument("--rate", dest="rate_hz", type=float, default=50.0)
+    p.add_argument("--smooth", dest="smooth_windows", type=int, default=9,
+                   help="median-filter features over N windows (live noise suppression; 1=off)")
+    # absolute threshold overrides (live) — pin the lines to measured values, bypass percentiles
+    p.add_argument("--still", dest="still_abs", type=float, default=None,
+                   help="absolute stillness floor (override calibration percentile)")
+    p.add_argument("--occupied", dest="occupied_abs", type=float, default=None,
+                   help="absolute occupied level (override calibration percentile)")
+    p.add_argument("--sharp", dest="sharp_abs", type=float, default=None,
+                   help="absolute impact/sharpness ceiling (override calibration percentile)")
+    p.add_argument("--confirm-s", dest="confirm_s", type=float, default=8.0,
+                   help="stillness seconds needed to confirm a sudden collapse (live)")
     p.add_argument("--speed", type=float, default=3.0, help="fallback playback speed (live is real-time)")
     p.add_argument("--no-loop", dest="loop", action="store_false", help="don't loop finite fallback streams")
     p.add_argument("--escalate-s", type=float, default=15.0)
@@ -97,8 +110,11 @@ def main(argv=None) -> None:
     a = _parse_args(argv)
     opts = EngineOptions(
         serial_port=a.serial_port, probe_serial=a.probe_serial, baud=a.baud, probe_s=a.probe_s,
-        csi_bench=a.csi_bench, replay=a.replay,
+        csi_bench=a.csi_bench, replay=a.replay, companion_port=a.companion,
         profile_path=a.profile_path, calibrate_s=a.calibrate_s, rate_hz=a.rate_hz,
+        smooth_windows=a.smooth_windows,
+        still_abs=a.still_abs, occupied_abs=a.occupied_abs, sharp_abs=a.sharp_abs,
+        confirm_s=a.confirm_s,
         speed=a.speed, loop=a.loop, escalate_s=a.escalate_s, room=a.room, contact=a.contact,
     )
     engine = MonitorEngine(opts).start()

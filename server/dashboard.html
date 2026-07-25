@@ -149,8 +149,8 @@
   <section class="hero">
     <!-- MONITORING view -->
     <div id="viewMonitor">
-      <div class="hero-top"><span class="statuslight"></span><span class="k">Monitoring</span></div>
-      <h1 class="headline">All clear</h1>
+      <div class="hero-top"><span class="statuslight"></span><span class="k" id="monKicker">Monitoring</span></div>
+      <h1 class="headline" id="monHead">All clear</h1>
       <div class="sub" id="monSub">Watching for a fall — no collapse detected.</div>
       <div class="roomline" id="monRoom">—</div>
       <div class="facts">
@@ -328,9 +328,24 @@
       $("viewAlert").classList.add("hide");
       $("viewMonitor").classList.remove("hide");
       clientDeadline = null;
-      $("monSub").textContent = a.phase === "cancelled"
-        ? "You marked yourself OK — back to monitoring."
-        : "Watching for a fall — no collapse detected.";
+      if (d.calibrating) {
+        $("monKicker").textContent = "Calibrating";
+        $("monHead").textContent = "Calibrating…";
+        $("monSub").textContent = "Learning this room's normal signal — keep the room normal for ~15s.";
+      } else {
+        $("monKicker").textContent = "Monitoring";
+        $("monHead").textContent = "All clear";
+        const th = d.thresholds || {}, mv = (m.motion || 0);
+        if (a.phase === "cancelled") {
+          $("monSub").textContent = "You marked yourself OK — back to monitoring.";
+        } else if (th.occupied && mv >= th.occupied) {
+          $("monSub").textContent = "● Movement detected — watching for a fall.";
+        } else if (th.still && mv >= th.still) {
+          $("monSub").textContent = "Someone present — watching for a fall.";
+        } else {
+          $("monSub").textContent = "Room quiet — watching for a fall.";
+        }
+      }
     }
   }
 
