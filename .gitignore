@@ -13,3 +13,7 @@ data/
 recordings/
 profiles/
 *.pkl
+
+# generated plot output (reproducible via scripts/plot_run.py)
+run.png
+*.png
