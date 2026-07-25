@@ -177,10 +177,23 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-Run the tests (currently 3 expected `xfail`, waiting on `features/extract.py`):
+Run it end-to-end on the synthetic room (zero hardware):
 
 ```
-pytest -q
+python scripts/calibrate.py     # learn this room's normal -> room_profile.pkl
+python scripts/run_live.py      # the one-line alert console
+python scripts/evaluate.py      # the Phase-0 gate numbers (recall / false-alarms per week)
+python scripts/plot_run.py      # SEE it: saves run.png (motion + sharpness + alerts)
+pytest -q                       # 20 tests
+```
+
+### Live hardware (after Milestone 1)
+
+Once the RX ESP32 streams CSI to serial, swap the source — nothing downstream changes:
+
+```python
+from wisp.source.serial_source import SerialSource
+source = SerialSource(port="COM5", baud=921600)   # or /dev/ttyUSB0 on Linux
 ```
 
 ## The MVP interface
