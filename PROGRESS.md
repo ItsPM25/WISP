@@ -91,6 +91,22 @@ Synthetic / replay / CSI-Bench / serial sources are interchangeable.
 - `scripts/evaluate.py` — print the gate numbers.
 - `scripts/plot_run.py` — save `run.png` (see the signals + alerts).
 
+### Dashboard (demo layer — `server/`)
+A thin Flask bridge + self-contained dashboard for the pitch, **separate from the core**
+(the core stays console-first). It consumes `wisp.pipeline.detection_telemetry` — the same
+path the harness uses — so the demo can't diverge from what's measured. Adds no detection
+logic; the only core change is a shared `detection_telemetry` generator (`run_detection` is
+now a thin filter over it) + a read-only `DetectionStateMachine.state`.
+- **Source fallback chain, always labelled on screen:** LIVE ESP32 (if CSI actually streams)
+  → real-data replay (`--csi-bench` / `--replay`) → synthetic demo room.
+- **Fall-alert + escalation UI:** MONITORING/ALERT hero, LIVE-vs-FALLBACK badge, live activity
+  meter/sparkline, cancellable escalation countdown.
+- Run: `python server/app.py --no-serial` (guaranteed software demo) — see `server/README.md`.
+- Endpoints (CORS on): `GET /status`, `POST /cancel`, `POST /reset`, `GET /healthz`.
+> Note: the main README lists dashboard/UI + escalation as *deferred, post-gate*. This layer
+> is deliberately additive and isolated in `server/`, for the demo — the gate is still the
+> false-alarms/week number, unchanged.
+
 ### Tests (20 passing)
 features · state machine · parser · logger↔replay · anomaly model · profile · harness · CSI-Bench adapter.
 
@@ -134,6 +150,11 @@ Live hardware (after Milestone 1): swap in `SerialSource(port="COM5", baud=92160
 
 ## 8. Change log
 
+- **2026-07-25** — Added a demo dashboard layer (`server/`): Flask bridge + self-contained
+  UI with a LIVE→real-data→synthetic **source fallback chain** (always labelled on screen)
+  and a cancellable **escalation** flow. Centralised detection into one
+  `pipeline.detection_telemetry` path (dashboard + `run_detection` both consume it) and added
+  a read-only `DetectionStateMachine.state`. Core tests still 20/20 green.
 - **2026-07-25** — Implemented full pipeline (source, ingest, preprocess, features, calibrate,
   detect, state machine, harness), wired 4 scripts, added CSI-Bench adapter + live SerialSource,
   grew tests to 20, produced a visual dashboard. Reworded commit messages to drop "synthetic"

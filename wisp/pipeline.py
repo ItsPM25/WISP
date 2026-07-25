@@ -1,13 +1,18 @@
 """The shared detection loop: CSISource + RoomProfile -> stream of Alerts.
 
-One code path so that live detection (scripts/run_live.py) and the evaluation harness
-(S9) run the *exact same* pipeline — features -> anomaly model -> temporal state machine.
-Keeping it here means "what you demo" and "what you measure" can never silently diverge.
+One code path so that live detection (scripts/run_live.py), the evaluation harness (S9),
+and the dashboard all run the *exact same* pipeline — features -> anomaly model -> temporal
+state machine. Keeping it here means "what you demo" and "what you measure" can never
+silently diverge.
+
+``detection_telemetry`` is that single path: it yields per-window telemetry AND any
+confirmed alert. ``run_detection`` is a thin alerts-only filter over it (unchanged
+behaviour), and richer consumers like the dashboard read the full telemetry.
 """
 
 from __future__ import annotations
 
-from typing import Iterator, Tuple
+from typing import Iterator, Optional, Tuple
 
 from .calibrate.profile import RoomProfile
 from .detect.state_machine import Alert, DetectionStateMachine
@@ -27,10 +32,28 @@ def _state_machine(profile: RoomProfile) -> DetectionStateMachine:
     )
 
 
-def run_detection(source: CSISource, profile: RoomProfile) -> Iterator[Tuple[float, Alert]]:
-    """Yield (timestamp, Alert) for every confirmed collapse in the source stream."""
+def detection_telemetry(
+    source: CSISource, profile: RoomProfile
+) -> Iterator[Tuple[float, dict, str, Optional[Alert]]]:
+    """The one detection path. Yields ``(timestamp, features, state, alert_or_None)`` for
+    EVERY window in the source stream.
+
+    - ``features``  : ``{motion_intensity, transient_sharpness}`` for the window.
+    - ``state``     : the state-machine state after this window (NORMAL/DISTURBANCE/STILL/CONFIRMED).
+    - ``alert``     : an ``Alert`` on the window that confirms a collapse, else ``None``.
+
+    Consumers that only care about confirmed collapses use ``run_detection``; consumers
+    that need to render live room state (the dashboard) read the full telemetry — without
+    re-implementing the loop and risking divergence from what the harness measures.
+    """
     sm = _state_machine(profile)
     for t, feat in feature_stream(source, profile.mask, profile.win_samples, profile.hop_samples):
         alert = sm.update(t, feat, is_anomaly=profile.model.is_anomaly(feat))
+        yield t, feat, sm.state, alert
+
+
+def run_detection(source: CSISource, profile: RoomProfile) -> Iterator[Tuple[float, Alert]]:
+    """Yield (timestamp, Alert) for every confirmed collapse in the source stream."""
+    for t, _feat, _state, alert in detection_telemetry(source, profile):
         if alert is not None:
             yield t, alert

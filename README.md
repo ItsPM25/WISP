@@ -187,6 +187,21 @@ python scripts/plot_run.py      # SEE it: saves run.png (motion + sharpness + al
 pytest -q                       # 20 tests
 ```
 
+### Live dashboard (optional demo layer)
+
+For a screen-recordable pitch, `server/` adds a Flask bridge + a self-contained dashboard
+(fall-alert + escalation UI) over the same pipeline. It is **additive and isolated** — the
+core stays console-first (dashboard/UI is otherwise deferred, see the bottom of this file).
+It auto-picks a source and always shows which one: **LIVE ESP32 → real-data replay →
+synthetic demo**.
+
+```
+python server/app.py --no-serial     # guaranteed software demo -> http://localhost:8000
+python server/app.py                 # use the ESP32 if it's streaming, else fall back
+```
+
+See [`server/README.md`](server/README.md) for the fallback chain, flags, and HTTP API.
+
 ### Live hardware (after Milestone 1)
 
 Once the RX ESP32 streams CSI to serial, swap the source — nothing downstream changes:

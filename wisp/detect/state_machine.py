@@ -64,6 +64,11 @@ class DetectionStateMachine:
     _last_alert_t: Optional[float] = None
     audit_log: List[tuple] = field(default_factory=list)
 
+    @property
+    def state(self) -> str:
+        """Current machine state (read-only): NORMAL | DISTURBANCE | STILL | CONFIRMED."""
+        return self._state
+
     def _transition(self, t: float, new: str) -> None:
         if new != self._state:
             self.audit_log.append((t, self._state, new))
