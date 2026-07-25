@@ -336,8 +336,7 @@
     const a = d.alert || { phase: "none" };
     if (a.phase === "active" || a.phase === "escalated") {
       document.body.setAttribute("data-alert", a.phase);
-      $("viewMonitor").classList.add("hide");
-      $("viewAlert").classList.remove("hide");
+      $("alertModal").classList.add("show");
       $("alHead").textContent = a.phase === "escalated" ? "FALL — ESCALATED" : "FALL DETECTED";
       $("alSub").textContent = a.phase === "escalated"
         ? "No response to the alert. The emergency contact has been notified."
@@ -351,16 +350,16 @@
       $("doneCap").textContent = d.room + " · help is on the way.";
       if (a.phase === "active") {
         $("escActive").classList.remove("hide"); $("escDone").classList.add("hide");
-        // smooth client-side deadline (re-sync each poll)
+        $("cancelBtn").classList.remove("hide"); $("resetBtn").classList.add("hide");
         clientDeadline = Date.now() + (a.countdown_s || 0) * 1000;
       } else {
         $("escActive").classList.add("hide"); $("escDone").classList.remove("hide");
+        $("cancelBtn").classList.add("hide"); $("resetBtn").classList.remove("hide");
         clientDeadline = null;
       }
     } else {
       document.body.setAttribute("data-alert", "none");
-      $("viewAlert").classList.add("hide");
-      $("viewMonitor").classList.remove("hide");
+      $("alertModal").classList.remove("show");
       clientDeadline = null;
       if (d.calibrating) {
         $("monKicker").textContent = "Calibrating";
