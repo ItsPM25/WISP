@@ -134,6 +134,23 @@
   .banner.warn { background: #2a1c07; border: 1px solid #5a4415; color: #f6d99a; }
   .banner.err { background: #2a0f0b; border: 1px solid #7a2318; color: #ffb3a6; }
   .hide { display: none !important; }
+
+  /* ---- alert modal overlay ---- */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; z-index: 1000;
+    background: rgba(10, 4, 2, .82); backdrop-filter: blur(8px);
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal-popup {
+    background: linear-gradient(180deg, #2a0f0a, #1c0b08);
+    border: 2px solid #7a2318; border-radius: var(--radius);
+    box-shadow: 0 24px 80px rgba(242, 69, 47, .3), 0 0 120px rgba(242, 69, 47, .08);
+    padding: 36px 40px 32px; width: 92vw; max-width: 620px;
+    display: flex; flex-direction: column; align-items: stretch;
+    animation: popIn .25s ease-out;
+  }
+  @keyframes popIn { from { opacity: 0; transform: scale(.92) translateY(12px); } to { opacity: 1; transform: none; } }
 </style>
 </head>
 <body data-alert="none">
