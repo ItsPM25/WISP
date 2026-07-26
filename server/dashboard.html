@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SenseThrough — Live Room Monitor</title>
+<style>
+  :root {
+    --bg: #0b0f14; --bg2: #121822; --panel: #151c27; --panel2: #1a2331;
+    --line: #24303f; --ink: #e7edf5; --muted: #8ea0b5; --dim: #61728a;
+    --teal: #17b3aa; --purple: #7b6cf0; --green: #2fbf6b; --amber: #e6a52b;
+    --red: #f2452f; --red-deep: #7d1a12;
+    --radius: 4px; --shadow: 0 10px 40px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: radial-gradient(1200px 700px at 70% -10%, #14202e 0%, var(--bg) 55%) fixed;
+    color: var(--ink);
+    font: 15px/1.5 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    padding: 22px clamp(14px, 4vw, 40px) 60px;
+    transition: background .5s ease;
+  }
+  body[data-alert="active"], body[data-alert="escalated"] {
+    background: radial-gradient(1200px 700px at 50% -10%, #3a120c 0%, #100a09 60%) fixed;
+  }
+  a { color: inherit; }
+  .wrap { max-width: 1120px; margin: 0 auto; }
+
+  /* ---- header ---- */
+  header { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 22px; }
+  .brand { display: flex; align-items: baseline; gap: 10px; }
+  .brand b { font-size: 20px; letter-spacing: .3px; }
+  .brand span { color: var(--muted); font-size: 13px; }
+  .spacer { flex: 1 1 auto; }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 9px;
+    padding: 8px 14px; border-radius: 999px; font-weight: 600; font-size: 13px;
+    border: 1px solid var(--line); background: var(--panel);
+  }
+  .badge .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--dim); }
+  .badge.live { color: #bff3d6; border-color: #1f5b3a; background: #10231a; }
+  .badge.live .dot { background: var(--green); box-shadow: 0 0 0 0 rgba(47,191,107,.7); animation: pulse 1.8s infinite; }
+  .badge.fallback { color: #f6e3b6; border-color: #5a4415; background: #241c0c; }
+  .badge.fallback .dot { background: var(--amber); }
+  @keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(47,191,107,.55)} 70%{box-shadow:0 0 0 8px rgba(47,191,107,0)} 100%{box-shadow:0 0 0 0 rgba(47,191,107,0)} }
+
+  .conn { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--muted); }
+  .conn .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); }
+  .conn.ok .dot { background: var(--teal); }
+  .conn.bad .dot { background: var(--red); }
+
+  /* ---- hero ---- */
+  .hero {
+    position: relative; border-radius: var(--radius); border: 1px solid var(--line);
+    background: linear-gradient(180deg, var(--panel2), var(--panel));
+    box-shadow: var(--shadow); padding: 30px; overflow: hidden;
+    transition: border-color .4s, background .4s;
+  }
+  body[data-alert="active"] .hero, body[data-alert="escalated"] .hero {
+    border-color: #7a2318; background: linear-gradient(180deg, #2a0f0a, #1c0b08);
+  }
+  .hero-top { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+  .statuslight { width: 14px; height: 14px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 16px var(--teal); }
+  body[data-alert="active"] .statuslight, body[data-alert="escalated"] .statuslight {
+    background: var(--red); box-shadow: 0 0 22px var(--red); animation: flash .9s infinite;
+  }
+  @keyframes flash { 0%,100%{opacity:1} 50%{opacity:.35} }
+  .hero-top .k { font-size: 12px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--muted); }
+
+  .headline { font-size: clamp(30px, 6vw, 54px); font-weight: 750; letter-spacing: -.5px; line-height: 1.05; margin: 0; }
+  .sub { color: var(--muted); margin-top: 10px; font-size: 15px; }
+  .roomline { margin-top: 4px; color: var(--dim); font-size: 13.5px; }
+
+  .alert-grid { display: grid; grid-template-columns: 1.2fr .8fr; gap: 26px; align-items: center; }
+  @media (max-width: 720px){ .alert-grid { grid-template-columns: 1fr; } }
+
+  .facts { display: flex; gap: 26px; flex-wrap: wrap; margin-top: 20px; }
+  .fact .n { font-size: 26px; font-weight: 700; }
+  .fact .l { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; }
+  .fact .n.red { color: #ff8a7a; }
+
+  /* escalation ring */
+  .esc { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .ring { position: relative; width: 150px; height: 150px; }
+  .ring svg { transform: rotate(-90deg); }
+  .ring .track { stroke: #3a1a14; }
+  .ring .prog { stroke: var(--red); stroke-linecap: round; transition: stroke .3s; }
+  .ring .center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .ring .center .big { font-size: 40px; font-weight: 750; }
+  .ring .center .small { font-size: 11px; color: var(--muted); letter-spacing: .6px; text-transform: uppercase; }
+  .esc .cap { color: #ffc4b8; font-size: 13.5px; text-align: center; }
+
+  .btn {
+    appearance: none; border: 0; cursor: pointer; font: inherit; font-weight: 700;
+    padding: 15px 26px; border-radius: 12px; letter-spacing: .3px;
+    background: #eef3f8; color: #0c1420; transition: transform .06s, filter .2s;
+    box-shadow: 0 6px 20px rgba(0,0,0,.35);
+  }
+  .btn:hover { filter: brightness(1.05); } .btn:active { transform: translateY(1px); }
+  .btn.ghost { background: transparent; color: var(--muted); box-shadow: none; border: 1px solid var(--line); font-weight: 600; padding: 10px 16px; }
+
+  .notified { text-align: center; }
+  .notified .tick { font-size: 46px; }
+  .notified .who { font-weight: 700; font-size: 20px; margin-top: 6px; }
+
+  /* ---- panels ---- */
+  .panels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 18px; }
+  @media (max-width: 860px){ .panels { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; }
+  .panel h3 { margin: 0 0 14px; font-size: 12px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+
+  .statechip { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; font-weight: 600; font-size: 13px; background: var(--panel2); border: 1px solid var(--line); }
+  .statechip .d { width: 8px; height: 8px; border-radius: 50%; background: var(--teal); }
+  .statechip[data-s="STILL"] .d { background: var(--amber); }
+  .statechip[data-s="DISTURBANCE"] .d { background: #ff8a5c; }
+  .statechip[data-s="CONFIRMED"] .d { background: var(--red); }
+
+  .meter { height: 12px; border-radius: 8px; background: #0e141d; border: 1px solid var(--line); overflow: hidden; margin: 14px 0 8px; }
+  .meter .fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--teal), var(--purple)); transition: width .25s ease, background .3s; }
+  body[data-alert="active"] .meter .fill, body[data-alert="escalated"] .meter .fill { background: linear-gradient(90deg,#ff7a5c,var(--red)); }
+  .spark { width: 100%; height: 60px; display: block; margin-top: 8px; }
+
+  .kv { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px dashed var(--line); font-size: 13.5px; }
+  .kv:last-child { border-bottom: 0; }
+  .kv .v { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .kv .k { color: var(--muted); }
+
+  .footnote { margin-top: 20px; color: var(--dim); font-size: 12.5px; line-height: 1.6; }
+  .banner { margin-top: 14px; padding: 11px 16px; border-radius: 12px; font-size: 13.5px; display: none; }
+  .banner.show { display: block; }
+  .banner.warn { background: #2a1c07; border: 1px solid #5a4415; color: #f6d99a; }
+  .banner.err { background: #2a0f0b; border: 1px solid #7a2318; color: #ffb3a6; }
+  .hide { display: none !important; }
+
+  /* ---- alert modal overlay ---- */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; z-index: 1000;
+    background: rgba(10, 4, 2, .82); backdrop-filter: blur(8px);
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal-popup {
+    background: linear-gradient(180deg, #2a0f0a, #1c0b08);
+    border: 2px solid #7a2318; border-radius: var(--radius);
+    box-shadow: 0 24px 80px rgba(242, 69, 47, .3), 0 0 120px rgba(242, 69, 47, .08);
+    padding: 36px 40px 32px; width: 92vw; max-width: 620px;
+    display: flex; flex-direction: column; align-items: stretch;
+    animation: popIn .25s ease-out;
+  }
+  @keyframes popIn { from { opacity: 0; transform: scale(.92) translateY(12px); } to { opacity: 1; transform: none; } }
+  .modal-popup .hero-top { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+  .modal-popup .headline { font-size: clamp(26px, 5vw, 44px); font-weight: 750; letter-spacing: -.5px; line-height: 1.05; margin: 0; }
+  .modal-popup .sub { color: var(--muted); margin-top: 10px; font-size: 15px; }
+  .modal-popup .roomline { margin-top: 4px; color: var(--dim); font-size: 13.5px; }
+  .modal-popup .facts { display: flex; gap: 26px; flex-wrap: wrap; margin-top: 20px; }
+  .modal-popup .fact .n { font-size: 26px; font-weight: 700; }
+  .modal-popup .fact .l { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; }
+  .modal-popup .fact .n.red { color: #ff8a7a; }
+  .modal-popup .alert-grid { display: grid; grid-template-columns: 1.2fr .8fr; gap: 26px; align-items: center; }
+  @media (max-width: 720px){ .modal-popup .alert-grid { grid-template-columns: 1fr; } }
+  .modal-footer { margin-top: 28px; display: flex; justify-content: center; }
+</style>
+</head>
+<body data-alert="none">
+<div class="wrap">
+  <header>
+    <div class="brand"><b>SenseThrough</b><span>live room monitor</span></div>
+    <div class="spacer"></div>
+    <div id="badge" class="badge"><span class="dot"></span><span id="badgeText">connecting…</span></div>
+    <div id="conn" class="conn"><span class="dot"></span><span id="connText">connecting</span></div>
+  </header>
+
+  <!-- ================= HERO ================= -->
+  <section class="hero">
+    <!-- MONITORING view -->
+    <div id="viewMonitor">
+      <div class="hero-top"><span class="statuslight"></span><span class="k" id="monKicker">Monitoring</span></div>
+      <h1 class="headline" id="monHead">All clear</h1>
+      <div class="sub" id="monSub">Watching for a fall — no collapse detected.</div>
+      <div class="roomline" id="monRoom">—</div>
+      <div class="facts">
+        <div class="fact"><div class="n" id="fState">—</div><div class="l">room state</div></div>
+        <div class="fact"><div class="n" id="fMotion">—</div><div class="l">activity level</div></div>
+        <div class="fact"><div class="n" id="fUptime">—</div><div class="l">uptime</div></div>
+      </div>
+    </div>
+
+    <!-- ALERT view is now a modal overlay (see below) -->
+  </section>
+
+  <!-- ================= PANELS ================= -->
+  <div class="panels">
+    <div class="panel">
+      <h3>Activity</h3>
+      <div id="chip" class="statechip" data-s="NORMAL"><span class="d"></span><span id="chipText">normal</span></div>
+      <div class="meter"><div class="fill" id="meterFill"></div></div>
+      <canvas class="spark" id="spark" width="600" height="120"></canvas>
+    </div>
+    <div class="panel">
+      <h3>Room state</h3>
+      <div class="kv"><span class="k">state</span><span class="v" id="pState">—</span></div>
+      <div class="kv"><span class="k">motion intensity</span><span class="v" id="pMotion">—</span></div>
+      <div class="kv"><span class="k">transient sharpness</span><span class="v" id="pSharp">—</span></div>
+      <div class="kv"><span class="k">stream time</span><span class="v" id="pTime">—</span></div>
+    </div>
+    <div class="panel">
+      <h3>Detector</h3>
+      <div class="kv"><span class="k">source</span><span class="v" id="pSource">—</span></div>
+      <div class="kv"><span class="k">sample rate</span><span class="v" id="pRate">—</span></div>
+      <div class="kv"><span class="k">packets seen</span><span class="v" id="pPackets">—</span></div>
+      <div class="kv"><span class="k">still / occupied / sharp</span><span class="v" id="pThresh">—</span></div>
+    </div>
+  </div>
+
+  <div id="warnBanner" class="banner warn"></div>
+  <div id="errBanner" class="banner err"></div>
+  <div class="footnote" id="foot">—</div>
+</div>
+
+<!-- ================= ALERT MODAL OVERLAY ================= -->
+<div class="modal-overlay" id="alertModal">
+  <div class="modal-popup">
+    <div class="hero-top"><span class="statuslight"></span><span class="k">Fall alert</span></div>
+    <div class="alert-grid">
+      <div>
+        <h1 class="headline" id="alHead">FALL DETECTED</h1>
+        <div class="sub" id="alSub">A collapse was detected and confirmed.</div>
+        <div class="roomline" id="alRoom">—</div>
+        <div class="facts">
+          <div class="fact"><div class="n red" id="alStill">—</div><div class="l">down for</div></div>
+          <div class="fact"><div class="n" id="alConf">—</div><div class="l">confidence</div></div>
+          <div class="fact"><div class="n" id="alKind">—</div><div class="l">type</div></div>
+        </div>
+      </div>
+
+      <!-- escalation: countdown OR notified -->
+      <div class="esc" id="escActive">
+        <div class="ring">
+          <svg width="150" height="150" viewBox="0 0 150 150">
+            <circle class="track" cx="75" cy="75" r="66" fill="none" stroke-width="12"/>
+            <circle class="prog" id="ringProg" cx="75" cy="75" r="66" fill="none" stroke-width="12"/>
+          </svg>
+          <div class="center"><div class="big" id="cd">—</div><div class="small">seconds</div></div>
+        </div>
+        <div class="cap" id="escCap">Contacting <b id="escWho">emergency contact</b>…</div>
+      </div>
+
+      <div class="esc hide" id="escDone">
+        <div class="notified">
+          <div class="tick">✅</div>
+          <div class="who" id="doneWho">Emergency contact notified</div>
+          <div class="cap" id="doneCap">Help is on the way.</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="cancelBtn">I'm OK — cancel</button>
+      <button class="btn ghost hide" id="resetBtn">Reset monitor</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const R = 66, CIRC = 2 * Math.PI * R;
+  $("ringProg").style.strokeDasharray = CIRC;
+
+  let clientDeadline = null;   // ms epoch when escalation fires (client-smoothed)
+  let escalateS = 15;
+  let last = null;             // last snapshot
+
+  async function poll() {
+    try {
+      const r = await fetch("status", { cache: "no-store" });
+      last = await r.json();
+      setConn(true);
+      render(last);
+    } catch (e) {
+      setConn(false);
+    }
+  }
+  function setConn(ok) {
+    const c = $("conn");
+    c.className = "conn " + (ok ? "ok" : "bad");
+    $("connText").textContent = ok ? "connected" : "reconnecting…";
+  }
+
+  function fmtTime(s) {
+    s = Math.max(0, Math.floor(s || 0));
+    const m = Math.floor(s / 60), ss = s % 60;
+    return m + "m " + String(ss).padStart(2, "0") + "s";
+  }
+
+  function render(d) {
+    // ---- source badge (LIVE vs FALLBACK — always visible) ----
+    const badge = $("badge");
+    if (d.live) { badge.className = "badge live"; $("badgeText").textContent = "LIVE · " + (d.source_label || "ESP32"); }
+    else { badge.className = "badge fallback"; $("badgeText").textContent = "FALLBACK · " + (d.source_label || "demo"); }
+
+    // ---- panels ----
+    const m = d.monitor || {};
+    $("chip").setAttribute("data-s", m.state || "NORMAL");
+    $("chipText").textContent = m.status_label || "—";
+    $("meterFill").style.width = Math.min(100, (m.motion_norm || 0) / 1.6 * 100) + "%";
+    $("pState").textContent = m.status_label || "—";
+    $("pMotion").textContent = (m.motion ?? "—");
+    $("pSharp").textContent = (m.sharp ?? "—");
+    $("pTime").textContent = (m.t != null ? m.t + "s" : "—");
+    $("pSource").textContent = d.source_label || "—";
+    $("pRate").textContent = d.sample_rate_hz ? d.sample_rate_hz + " Hz" : "—";
+    $("pPackets").textContent = (d.packets ?? "—").toLocaleString?.() ?? d.packets;
+    const th = d.thresholds;
+    $("pThresh").textContent = th ? `${th.still} / ${th.occupied} / ${th.sharp}` : "—";
+    drawSpark(m.history || []);
+
+    // ---- banners ----
+    toggleBanner($("warnBanner"), d.stale ? "⚠ Live feed lost — no CSI packets from the board for a few seconds." :
+      (d.stream_ended && !d.live ? "Stream ended." : ""));
+    toggleBanner($("errBanner"), d.error ? ("Engine error: " + d.error) : "");
+
+    // ---- footnote (honest framing, always shows the mode) ----
+    $("foot").textContent = d.note || "";
+
+    // ---- monitoring facts ----
+    $("fState").textContent = m.status_label || "—";
+    $("fMotion").textContent = pct(m.motion_norm);
+    $("fUptime").textContent = fmtTime(d.uptime_s);
+    $("monRoom").textContent = d.room + " · " + (d.live ? "live sensing" : "fallback data");
+
+    // ---- alert vs monitoring ----
+    escalateS = d.escalate_s || escalateS;
+    const a = d.alert || { phase: "none" };
+    if (a.phase === "active" || a.phase === "escalated") {
+      document.body.setAttribute("data-alert", a.phase);
+      $("alertModal").classList.add("show");
+      $("alHead").textContent = a.phase === "escalated" ? "FALL — ESCALATED" : "FALL DETECTED";
+      $("alSub").textContent = a.phase === "escalated"
+        ? "No response to the alert. The emergency contact has been notified."
+        : "A collapse was detected and confirmed by the temporal detector.";
+      $("alRoom").textContent = d.room + " · confirmed at t=" + a.at_t + "s";
+      $("alStill").textContent = (a.stillness_s != null ? a.stillness_s + "s" : "—");
+      $("alConf").textContent = (a.confidence != null ? Math.round(a.confidence * 100) + "%" : "—");
+      $("alKind").textContent = a.kind || "—";
+      $("escWho").textContent = d.contact;
+      $("doneWho").textContent = d.contact + " notified";
+      $("doneCap").textContent = d.room + " · help is on the way.";
+      if (a.phase === "active") {
+        $("escActive").classList.remove("hide"); $("escDone").classList.add("hide");
+        $("cancelBtn").classList.remove("hide"); $("resetBtn").classList.add("hide");
+        clientDeadline = Date.now() + (a.countdown_s || 0) * 1000;
+      } else {
+        $("escActive").classList.add("hide"); $("escDone").classList.remove("hide");
+        $("cancelBtn").classList.add("hide"); $("resetBtn").classList.remove("hide");
+        clientDeadline = null;
+      }
+    } else {
+      document.body.setAttribute("data-alert", "none");
+      $("alertModal").classList.remove("show");
+      clientDeadline = null;
+      if (d.calibrating) {
+        $("monKicker").textContent = "Calibrating";
+        $("monHead").textContent = "Calibrating…";
+        $("monSub").textContent = "Learning this room's normal signal — keep the room normal for ~15s.";
+      } else {
+        $("monKicker").textContent = "Monitoring";
+        $("monHead").textContent = "All clear";
+        const th = d.thresholds || {}, mv = (m.motion || 0);
+        if (a.phase === "cancelled") {
+          $("monSub").textContent = "You marked yourself OK — back to monitoring.";
+        } else if (th.occupied && mv >= th.occupied) {
+          $("monSub").textContent = "● Movement detected — watching for a fall.";
+        } else if (th.still && mv >= th.still) {
+          $("monSub").textContent = "Someone present — watching for a fall.";
+        } else {
+          $("monSub").textContent = "Room quiet — watching for a fall.";
+        }
+      }
+    }
+  }
+
+  function pct(x) { return x == null ? "—" : Math.round(Math.min(x, 1.6) / 1.6 * 100) + "%"; }
+  function toggleBanner(el, text) { if (text) { el.textContent = text; el.classList.add("show"); } else el.classList.remove("show"); }
+
+  // countdown ring animates smoothly between polls
+  function tick() {
+    if (clientDeadline) {
+      const rem = Math.max(0, (clientDeadline - Date.now()) / 1000);
+      $("cd").textContent = Math.ceil(rem);
+      const frac = Math.max(0, Math.min(1, rem / escalateS));
+      $("ringProg").style.strokeDashoffset = CIRC * (1 - frac);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  // sparkline
+  const sc = $("spark"), sctx = sc.getContext("2d");
+  function drawSpark(h) {
+    const W = sc.width, H = sc.height; sctx.clearRect(0, 0, W, H);
+    if (!h.length) return;
+    const alert = document.body.getAttribute("data-alert") !== "none";
+    const top = alert ? "#ff7a5c" : "#17b3aa";
+    const n = h.length, dx = W / Math.max(1, n - 1), maxY = 1.6;
+    // area
+    sctx.beginPath(); sctx.moveTo(0, H);
+    h.forEach((v, i) => sctx.lineTo(i * dx, H - Math.min(v, maxY) / maxY * (H - 6) - 3));
+    sctx.lineTo(W, H); sctx.closePath();
+    const g = sctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, alert ? "rgba(242,69,47,.35)" : "rgba(23,179,170,.30)");
+    g.addColorStop(1, "rgba(0,0,0,0)"); sctx.fillStyle = g; sctx.fill();
+    // line
+    sctx.beginPath();
+    h.forEach((v, i) => { const y = H - Math.min(v, maxY) / maxY * (H - 6) - 3; i ? sctx.lineTo(i * dx, y) : sctx.moveTo(0, y); });
+    sctx.strokeStyle = top; sctx.lineWidth = 2; sctx.stroke();
+  }
+
+  $("cancelBtn").addEventListener("click", async () => {
+    $("cancelBtn").textContent = "cancelling…";
+    try { await fetch("cancel", { method: "POST" }); } catch (e) {}
+    setTimeout(() => ($("cancelBtn").textContent = "I'm OK — cancel"), 800);
+    poll();
+  });
+  $("resetBtn").addEventListener("click", async () => { try { await fetch("reset", { method: "POST" }); } catch (e) {} poll(); });
+
+  requestAnimationFrame(tick);
+  poll();
+  setInterval(poll, 500);
+})();
+</script>
+</body>
+</html>

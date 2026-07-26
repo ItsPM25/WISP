@@ -21,6 +21,19 @@ from ..ingest.parser import parse_csi_line
 from .base import CSISource
 
 
+def normalize_agc(amp: np.ndarray) -> np.ndarray:
+    """Per-packet amplitude normalization for ESP32 CSI.
+
+    Raw ESP32 CSI amplitude includes the receiver's automatic gain control (AGC): the whole
+    packet scales up/down between frames for reasons unrelated to the channel, which shows up
+    as large fake "motion". Dividing each packet by its own mean removes that global scale and
+    keeps only the RELATIVE subcarrier shape — so downstream variance reflects real channel
+    change (a body moving) rather than AGC jitter. Empty/near-zero packets pass through.
+    """
+    mean = float(np.mean(amp))
+    return amp / mean if mean > 1e-6 else amp
+
+
 class SerialSource(CSISource):
     """Live CSI stream from the RX ESP32 over a serial port.
 
@@ -55,7 +68,18 @@ class SerialSource(CSISource):
     def stream(self) -> Iterator[Tuple[float, np.ndarray]]:
         import serial  # pyserial — imported lazily so no-hardware machines still import wisp
 
-        ser = serial.Serial(self.port, self.baud, timeout=self.timeout)
+        # Open WITHOUT asserting DTR/RTS: on ESP32 dev boards RTS->EN and DTR->GPIO0, so a
+        # normal open resets the chip (and can hold it in reset), which shows up as garbage /
+        # no CSI. Configure the lines low before opening so the running firmware keeps streaming.
+        ser = serial.Serial()
+        ser.port = self.port
+        ser.baudrate = self.baud
+        ser.timeout = self.timeout
+        ser.dtr = False
+        ser.rts = False
+        ser.open()
+        ser.dtr = False
+        ser.rts = False
         t0 = time.time()
         n = 0
         try:
