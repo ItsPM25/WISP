@@ -74,7 +74,7 @@ class EngineOptions:
     # playback + demo flavour
     speed: float = 3.0                    # fallback playback speed multiplier (live is real-time)
     loop: bool = True                     # loop finite fallback streams (unattended demo)
-    escalate_s: float = 15.0              # countdown before auto-notifying the contact
+    escalate_s: float = 30.0              # countdown before auto-notifying the contact
     room: str = "Room 1"
     contact: str = "Emergency contact"
 

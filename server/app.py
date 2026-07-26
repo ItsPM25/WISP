@@ -99,7 +99,7 @@ def _parse_args(argv=None) -> argparse.Namespace:
                    help="stillness seconds needed to confirm a sudden collapse (live)")
     p.add_argument("--speed", type=float, default=3.0, help="fallback playback speed (live is real-time)")
     p.add_argument("--no-loop", dest="loop", action="store_false", help="don't loop finite fallback streams")
-    p.add_argument("--escalate-s", type=float, default=15.0)
+    p.add_argument("--escalate-s", type=float, default=30.0)
     p.add_argument("--room", default="Room 1")
     p.add_argument("--contact", default="Emergency contact")
     return p.parse_args(argv)
