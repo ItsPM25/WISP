@@ -365,6 +365,7 @@
     } else {
       document.body.setAttribute("data-alert", "none");
       $("alertModal").classList.remove("show");
+      $("cancelBtn").classList.remove("is-ok");
       clientDeadline = null;
       if (d.calibrating) {
         $("monKicker").textContent = "Calibrating";
