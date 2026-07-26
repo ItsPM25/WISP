@@ -162,6 +162,9 @@
   .modal-popup .alert-grid { display: grid; grid-template-columns: 1.2fr .8fr; gap: 26px; align-items: center; }
   @media (max-width: 720px){ .modal-popup .alert-grid { grid-template-columns: 1fr; } }
   .modal-footer { margin-top: 28px; display: flex; justify-content: center; }
+
+  /* ---- "I'm OK — cancel" button: green on hover, stays green once clicked ---- */
+  #cancelBtn { transition: transform .06s, filter .2s, background .2s ease; }
 </style>
 </head>
 <body data-alert="none">
