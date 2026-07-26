@@ -423,6 +423,7 @@
   }
 
   $("cancelBtn").addEventListener("click", async () => {
+    $("cancelBtn").classList.add("is-ok");
     $("cancelBtn").textContent = "cancelling…";
     try { await fetch("cancel", { method: "POST" }); } catch (e) {}
     setTimeout(() => ($("cancelBtn").textContent = "I'm OK — cancel"), 800);
